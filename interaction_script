@@ -1,0 +1,80 @@
+import requests
+import json
+import sys
+##TODO
+stage_email_id=""
+stage_password=""
+prod_email_id=""
+prod_password=""
+
+#stage data
+stage_interaction_url="https://aoaws.eks.athenasowl.tv/api/workflow-interaction/bd41f6af-b8a7-54a4-8907-39cfe51a26ae/interaction"
+stage_login_url="https://aostage.athenasowl.tv/api/user-management/login/"
+stage_project_id="8bd4d1d3-0b69-515e-8e15-e9c49992f7d5"
+stage_authority_platform="https://aostage.athenasowl.tv"
+#prod data
+prod_authority_platform = "https://aoplatform.athenasowl.tv/"
+prod_interaction_url="https://clientplatform.athenasowl.tv/api/workflow-interaction/c6f9afc7-ca08-5bbb-83ac-abcadbf395bc/interaction"
+prod_login_url="https://aoplatform.athenasowl.tv/api/user-management/login/"
+prod_project_id="c6f9afc7-ca08-5bbb-83ac-abcadbf395bc"
+
+
+def get_token(email_id,password,login_url):
+    
+    url=login_url
+    body={
+        "email": email_id,
+        "password": password
+    }
+    
+    headers = {"content-type": "application/json"}
+    response = requests.post(url,  data=json.dumps(body), headers=headers)
+    # print("")
+    json_response = response.json()
+
+    print(json_response)
+    # json_response = json_response.json()
+    account_id=json_response['result']['accounts'][0]['account_id']
+    access_token=json_response['result']['access']
+    return account_id,access_token
+
+def trigger_workflow(account_id,access_token,project_id,url,input_bucket_path):
+
+    request_body={
+        "workflow_id": "7d14dac2-f779-4dbb-a073-70a859a8e6b1",
+        "version_id": "21bd41e3-9deb-4933-80fe-61394a6682e7",
+        "client_tier": "607febbc-dc65-494d-9d94-78c2cbc2ab5e",
+        "destination_path": "gs://b-ao-sportcast-2019-2020-12ae9cc25335/MD26/Ruturaj/",
+        "save_external_feature": False,
+        "destination_same_as_source": False,
+        "input": {
+            "video": ["gs://b-ao-sportcast-2019-2020-12ae9cc25335/MD26/DAL_2048120_HLM, SlowMo Playout HD - 1. BL 2019-2020 26. Spieltag FC Augsburg vs. VfL Wolfsburg.mp4"]
+
+        }
+    }
+    # request_body={}
+    # print(request_body) 
+    headers = {
+        "content-type": "application/json",
+        "account-id": account_id,
+        "Authorization":"Bearer "+access_token
+              }
+    # print(headers)
+    print(headers,request_body,url)
+    print("sending  to interaction ")
+    response = requests.post(url,  data=json.dumps(request_body), headers=headers)
+
+
+    print(response.text)
+    print(response.json())
+    print(response,"trigger response")
+    return response
+
+# print(sys.argv[0])
+# 8/0
+if sys.argv[1] == "stage":
+    account_id, access_token = get_token(stage_email_id,stage_password,stage_login_url)
+    trigger_workflow(account_id,access_token,stage_project_id,stage_interaction_url,input_bucket_path="")
+elif sys.argv[1] == "prod":
+    account_id, access_token = get_token(prod_email_id,prod_password,prod_login_url)
+    trigger_workflow(account_id,access_token,prod_project_id,prod_interaction_url,input_bucket_path="gs://b-ao-sportcast-2019-2020-12ae9cc25335/MD26/")
